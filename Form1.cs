@@ -32,7 +32,6 @@ namespace convex_hull
 		/// </summary>
 		private void clearCanvas()
 		{
-			algorithm = new JarvisAlgorithm(PictureBox.Location, PictureBox.Size, 0);
 			graphics.Clear(Color.White);
 			pointRemove = new Point(NEGATIVE, NEGATIVE);
 		}
@@ -75,6 +74,7 @@ namespace convex_hull
 		private void buttonGenerateRandom_Click(object sender, EventArgs e)
 		{
 			clearCanvas();
+			algorithm = new JarvisAlgorithm(PictureBox.Location, PictureBox.Size, DRAWING_SIZE);
 			algorithm.CreateRandomPoints();
 			algorithm.CalculateFromPoints();
 
@@ -112,16 +112,27 @@ namespace convex_hull
 		private void buttonClear_Click(object sender, EventArgs e)
 		{
 			clearCanvas();
+			algorithm = new JarvisAlgorithm(PictureBox.Location, PictureBox.Size, DRAWING_SIZE);
 		}
 
 		private void buttonRemove_Click(object sender, EventArgs e)
 		{
+
+			algorithm.RemovePoint(pointRemove);
+
 			if (!convexHull.Contains(pointRemove))
 			{
-				points.Remove(pointRemove);
 				drawPoint(pointRemove, Pens.White, Brushes.White);
-				pointRemove = new Point(NEGATIVE, NEGATIVE);
+				drawConvexHull();
 			}
+			else
+			{
+				algorithm.RemoveRecalculate(pointRemove);
+				clearCanvas();
+				drawConvexHull();
+			}
+
+			pointRemove = new Point(NEGATIVE, NEGATIVE);
 		}
 	}
 
@@ -129,6 +140,7 @@ namespace convex_hull
 	{
 		Random random = new Random();
 		private readonly int minWindowX, minWindowY, maxWindowX, maxWindowY;
+		const int NEGATIVE = -1;
 
 		private List<Point> points = new List<Point>();
 		private List<Point> convexHullPoints = new List<Point>();
@@ -148,9 +160,14 @@ namespace convex_hull
 			collinear
 		}
 
+		public bool RemovePoint(Point pointRemove)
+		{
+			return points.Remove(pointRemove);
+		}
+
 		public void CreateRandomPoints()
 		{
-			for (int i = 0; i < 25; i++)
+			for (int i = 0; i < 50; i++)
 			{
 				int x = random.Next(minWindowX, maxWindowX);
 				int y = random.Next(minWindowY, maxWindowY);
@@ -177,6 +194,11 @@ namespace convex_hull
 				return Orientation.CCW;
 			else
 				return Orientation.CW;
+		}
+
+		private double getDistance(Point point1, Point point2)
+		{
+			return Math.Sqrt(Math.Pow(point1.X - point2.X, 2) + Math.Pow(point1.Y - point2.Y, 2));
 		}
 
 		/// <summary>
@@ -216,6 +238,36 @@ namespace convex_hull
 				}
 				lastConvexIndex = currentIndex;
 			} while (leftMostIndex != lastConvexIndex);
+		}
+
+
+		public void RemoveRecalculate(Point pointRemove)
+		{
+			var indexRemove = convexHullPoints.IndexOf(pointRemove);
+			Point newVertex = new Point(NEGATIVE, NEGATIVE);
+
+			double min_distance = maxWindowX + maxWindowY;
+			double distance;
+			for (int i = 0; i < points.Count; i++)
+			{
+				distance = getDistance(pointRemove, points[i]);
+				if (distance > min_distance) continue;
+
+				if (orientationTest(
+					convexHullPoints[(indexRemove + convexHullPoints.Count - 1) % convexHullPoints.Count],
+					convexHullPoints[(indexRemove + 1) % convexHullPoints.Count],
+					points[i]) == Orientation.CCW)
+				{
+					min_distance = distance;
+					newVertex = points[i];
+				}
+			}
+
+			// no new vertex to add, no update of newVertex
+			if (newVertex.X < 0 || newVertex.Y < 0)
+				convexHullPoints.RemoveAt(indexRemove);
+			else
+				convexHullPoints[indexRemove] = newVertex;
 		}
 
 		public List<Point> GetConvexHull => convexHullPoints;
