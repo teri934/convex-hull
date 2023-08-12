@@ -244,20 +244,34 @@ namespace convex_hull
 		public void RemoveRecalculate(Point pointRemove)
 		{
 			var indexRemove = convexHullPoints.IndexOf(pointRemove);
+			Recalculate(pointRemove, indexRemove, poi);
+
+			// no new vertex to add, no update of newVertex
+			if (newVertex.X < 0 || newVertex.Y < 0)
+				convexHullPoints.RemoveAt(indexRemove);
+			else
+				convexHullPoints[indexRemove] = newVertex;
+		}
+
+		void Recalculate(int refIndexLeft, int refIndexRight, List<Point> CCWPoints)
+		{
 			Point newVertex = new Point(NEGATIVE, NEGATIVE);
+			List<Point> newCCWPoints = new List<Point>();
 
 			double min_distance = maxWindowX + maxWindowY;
 			double distance;
-			for (int i = 0; i < points.Count; i++)
+			for (int i = 0; i < CCWPoints.Count; i++)
 			{
-				distance = getDistance(pointRemove, points[i]);
-				if (distance > min_distance) continue;
+				distance = getDistance(convexHullPoints[refIndexLeft], points[i]);
 
 				if (orientationTest(
-					convexHullPoints[(indexRemove + convexHullPoints.Count - 1) % convexHullPoints.Count],
-					convexHullPoints[(indexRemove + 1) % convexHullPoints.Count],
-					points[i]) == Orientation.CCW)
+					convexHullPoints[(refIndex + convexHullPoints.Count - 1) % convexHullPoints.Count],
+					convexHullPoints[(refIndex + 1) % convexHullPoints.Count],
+					CCWPoints[i]) == Orientation.CCW)
 				{
+					newCCWPoints.Add(CCWPoints[i]);
+
+					if (distance > min_distance) continue;
 					min_distance = distance;
 					newVertex = points[i];
 				}
@@ -265,9 +279,12 @@ namespace convex_hull
 
 			// no new vertex to add, no update of newVertex
 			if (newVertex.X < 0 || newVertex.Y < 0)
-				convexHullPoints.RemoveAt(indexRemove);
-			else
-				convexHullPoints[indexRemove] = newVertex;
+				return;
+
+			convexHullPoints.Insert(refIndexRight, newVertex);
+			Recalculate(refIndexLeft, refIndexRight, newCCWPoints);
+			Recalculate(refIndexRight, (refIndexRight + 1) % convexHullPoints.Count, newCCWPoints);
+
 		}
 
 		public List<Point> GetConvexHull => convexHullPoints;
