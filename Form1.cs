@@ -117,6 +117,8 @@ namespace convex_hull
 
 		private void buttonRemove_Click(object sender, EventArgs e)
 		{
+			if (pointRemove.X == NEGATIVE)
+				return;
 
 			algorithm.RemovePoint(pointRemove);
 
@@ -240,34 +242,41 @@ namespace convex_hull
 			} while (leftMostIndex != lastConvexIndex);
 		}
 
-
+		/// <summary>
+		/// perform Jarvis algorithm between two known points
+		/// </summary>
+		/// <param name="pointRemove"></param>
 		public void RemoveRecalculate(Point pointRemove)
 		{
 			var indexRemove = convexHullPoints.IndexOf(pointRemove);
-			Point newVertex = new Point(NEGATIVE, NEGATIVE);
+			int insertIndex = (indexRemove + convexHullPoints.Count - 1) % convexHullPoints.Count;
+			Point startPoint = convexHullPoints[insertIndex];
+			Point endPoint = convexHullPoints[(insertIndex + 2) % convexHullPoints.Count];
 
-			double min_distance = maxWindowX + maxWindowY;
-			double distance;
-			for (int i = 0; i < points.Count; i++)
+			int leftMostIndex = points.IndexOf(startPoint);
+			int lastConvexIndex = leftMostIndex;
+			int currentIndex;
+			Point lastConvexPoint;
+
+			int num = 0;
+			do
 			{
-				distance = getDistance(pointRemove, points[i]);
-				if (distance > min_distance) continue;
-
-				if (orientationTest(
-					convexHullPoints[(indexRemove + convexHullPoints.Count - 1) % convexHullPoints.Count],
-					convexHullPoints[(indexRemove + 1) % convexHullPoints.Count],
-					points[i]) == Orientation.CCW)
+				convexHullPoints.Insert(indexRemove + num, points[lastConvexIndex]);
+				currentIndex = (lastConvexIndex + 1) % points.Count;
+				for (int test_index = 0; test_index < points.Count; test_index++)
 				{
-					min_distance = distance;
-					newVertex = points[i];
+					if (orientationTest(points[lastConvexIndex], points[currentIndex], points[test_index]) == Orientation.CCW)
+						currentIndex = test_index;
 				}
-			}
+				lastConvexIndex = currentIndex;
+				lastConvexPoint = points[lastConvexIndex];
+				num++;
+			} while (lastConvexPoint != endPoint);
 
-			// no new vertex to add, no update of newVertex
-			if (newVertex.X < 0 || newVertex.Y < 0)
-				convexHullPoints.RemoveAt(indexRemove);
-			else
-				convexHullPoints[indexRemove] = newVertex;
+/*			remove point that shoul be removed and
+			duplicate startPoint */
+			convexHullPoints.Remove(pointRemove);
+			convexHullPoints.Remove(startPoint);
 		}
 
 		public List<Point> GetConvexHull => convexHullPoints;
