@@ -19,7 +19,6 @@ namespace convex_hull
 		const int NEGATIVE = -1;
 		List<Point> points, convexHull;
 		Point pointRemove;
-		int indexRemove;
 
 		public FormConvexHull()
 		{
@@ -83,29 +82,32 @@ namespace convex_hull
 
 		/// <summary>
 		/// if clicking on a point, recolor it and
-		/// color previous clicked pint to original black color
+		/// color previous clicked point to the original black color
+		/// and store the point to for removal
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
 		private void PictureBox_Click(object sender, EventArgs e) 
 		{
-			Console.WriteLine(string.Format("X: {0} Y: {1}", ((MouseEventArgs)e).X, ((MouseEventArgs)e).Y));
-			for (int i = 0; i < points.Count; i++)
+			var array = algorithm.GetCustomArray;
+			var (y, x) = algorithm.GetGridBucketIndices(((MouseEventArgs)e).Y, ((MouseEventArgs)e).X);
+
+			for (int i = 0; i < array[y,x].Count; i++)
 			{
-				if (((MouseEventArgs)e).X >= points[i].X - DRAWING_SIZE / 2 && ((MouseEventArgs)e).X <= points[i].X + DRAWING_SIZE / 2
-					&& ((MouseEventArgs)e).Y >= points[i].Y - DRAWING_SIZE / 2 && ((MouseEventArgs)e).Y <= points[i].Y + DRAWING_SIZE / 2)
+				if (((MouseEventArgs)e).X >= array[y,x][i].X - DRAWING_SIZE / 2 && ((MouseEventArgs)e).X <= array[y, x][i].X + DRAWING_SIZE / 2
+					&& ((MouseEventArgs)e).Y >= array[y,x][i].Y - DRAWING_SIZE / 2 && ((MouseEventArgs)e).Y <= array[y, x][i].Y + DRAWING_SIZE / 2)
 				{
 					if (pointRemove.X >= 0 && pointRemove.Y >= 0)
 						drawPoint(pointRemove, Pens.Black, Brushes.Black);
-					pointRemove = points[i];
-					indexRemove = i;
+					pointRemove = array[y, x][i];
 					drawPoint(pointRemove, Pens.Blue, Brushes.Blue);
 				}
 			}
 		}
 
 		/// <summary>
-		/// 
+		/// remove found point and decide what
+		/// to do next with the convex hull
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
@@ -126,6 +128,7 @@ namespace convex_hull
 			{
 				drawPoint(pointRemove, Pens.White, Brushes.White);
 				drawConvexHull();
+				algorithm.RemovePointFromGrid(pointRemove);
 			}
 			else
 			{
@@ -143,9 +146,11 @@ namespace convex_hull
 		Random random = new Random();
 		private readonly int minWindowX, minWindowY, maxWindowX, maxWindowY;
 		const int NEGATIVE = -1;
+		const int NUMBER_POINTS = 50;
 
 		private List<Point> points = new List<Point>();
 		private List<Point> convexHullPoints = new List<Point>();
+		Grid grid;
 
 		public JarvisAlgorithm(Point location, Size size, int drawingSize)
 		{
@@ -153,6 +158,7 @@ namespace convex_hull
 			minWindowY = 0 + drawingSize;
 			maxWindowX = minWindowX + size.Width - drawingSize;
 			maxWindowY = minWindowY + size.Height - drawingSize;
+			grid = new Grid(NUMBER_POINTS, size);
 		}
 
 		enum Orientation
@@ -169,12 +175,15 @@ namespace convex_hull
 
 		public void CreateRandomPoints()
 		{
-			for (int i = 0; i < 50; i++)
+			for (int i = 0; i < NUMBER_POINTS; i++)
 			{
 				int x = random.Next(minWindowX, maxWindowX);
 				int y = random.Next(minWindowY, maxWindowY);
 
-				points.Add(new Point(x, y));
+				Point point = new Point(x, y);
+				points.Add(point);
+				// add point to the grid
+				grid.AddPoint(point);
 			}
 		}
 
@@ -196,11 +205,6 @@ namespace convex_hull
 				return Orientation.CCW;
 			else
 				return Orientation.CW;
-		}
-
-		private double getDistance(Point point1, Point point2)
-		{
-			return Math.Sqrt(Math.Pow(point1.X - point2.X, 2) + Math.Pow(point1.Y - point2.Y, 2));
 		}
 
 		/// <summary>
@@ -273,14 +277,70 @@ namespace convex_hull
 				num++;
 			} while (lastConvexPoint != endPoint);
 
-/*			remove point that shoul be removed and
+/*			remove point that should be removed (from the grid too) and
 			duplicate startPoint */
 			convexHullPoints.Remove(pointRemove);
+			RemovePointFromGrid(pointRemove);
 			convexHullPoints.Remove(startPoint);
+		}
+
+		public void RemovePointFromGrid(Point point)
+		{
+			grid.RemovePoint(point);
+		}
+
+
+		public Tuple<int,int> GetGridBucketIndices(int coordinateY, int coordinateX)
+		{
+			return grid.GetBucketIndices(coordinateY, coordinateX);
 		}
 
 		public List<Point> GetConvexHull => convexHullPoints;
 		public List<Point> GetPoints => points;
+		public List<Point>[,] GetCustomArray => grid.customArray;
+	}
+}
+
+
+public class Grid
+{
+	readonly int gridSize;
+	readonly int bucketSizeY;
+	readonly int bucketSizeX;
+
+	public List<Point>[,] customArray;
+
+	public Grid(int num, Size dimen)
+	{
+		gridSize = (int)(Math.Ceiling(Math.Sqrt(num)));
+		bucketSizeY = dimen.Height / gridSize;
+		bucketSizeX = dimen.Width / gridSize;
+
+		customArray = new List<Point>[gridSize+1, gridSize+1];
+		for (int i = 0; i <= gridSize; i++)
+		{
+			for (int j = 0;  j <= gridSize;  j++)
+			{
+				customArray[i,j] = new List<Point>();
+			}
+		}
+	}
+
+	public void AddPoint(Point point)
+	{
+		customArray[point.Y/bucketSizeY, point.X / bucketSizeX].Add(point);
+	}
+
+	public void RemovePoint(Point point)
+	{
+		bool value = customArray[point.Y/bucketSizeY, point.X/bucketSizeX].Remove(point);
+		if (!value)
+			throw new Exception("removing non existing point");
+	}
+
+	public Tuple<int,int> GetBucketIndices(int coordinateY, int coordinateX)
+	{
+		return new Tuple<int,int> (coordinateY/bucketSizeY, coordinateX/bucketSizeX);
 	}
 }
 
