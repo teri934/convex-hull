@@ -32,6 +32,7 @@
 			this.PictureBox = new System.Windows.Forms.PictureBox();
 			this.buttonRemove = new System.Windows.Forms.Button();
 			this.buttonClear = new System.Windows.Forms.Button();
+			this.generate_benchmarks = new System.Windows.Forms.Button();
 			((System.ComponentModel.ISupportInitialize)(this.PictureBox)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -75,11 +76,22 @@
 			this.buttonClear.UseVisualStyleBackColor = true;
 			this.buttonClear.Click += new System.EventHandler(this.buttonClear_Click);
 			// 
+			// generate_benchmarks
+			// 
+			this.generate_benchmarks.Location = new System.Drawing.Point(785, 337);
+			this.generate_benchmarks.Name = "generate_benchmarks";
+			this.generate_benchmarks.Size = new System.Drawing.Size(155, 74);
+			this.generate_benchmarks.TabIndex = 5;
+			this.generate_benchmarks.Text = "Generate benchmarks";
+			this.generate_benchmarks.UseVisualStyleBackColor = true;
+			this.generate_benchmarks.Click += new System.EventHandler(this.generate_benchmarks_Click);
+			// 
 			// FormConvexHull
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(962, 559);
+			this.Controls.Add(this.generate_benchmarks);
 			this.Controls.Add(this.buttonClear);
 			this.Controls.Add(this.buttonRemove);
 			this.Controls.Add(this.PictureBox);
@@ -97,6 +109,7 @@
 		private System.Windows.Forms.PictureBox PictureBox;
 		private System.Windows.Forms.Button buttonRemove;
 		private System.Windows.Forms.Button buttonClear;
+		private System.Windows.Forms.Button generate_benchmarks;
 	}
 }
 
