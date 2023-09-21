@@ -9,6 +9,8 @@ using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Diagnostics;
+using System.IO;
 
 namespace convex_hull
 {
@@ -75,7 +77,7 @@ namespace convex_hull
 		private void buttonGenerateRandom_Click(object sender, EventArgs e)
 		{
 			clearCanvas();
-			algorithm = new JarvisAlgorithm(PictureBox.Location, PictureBox.Size, DRAWING_SIZE);
+			algorithm = new JarvisAlgorithm(PictureBox.Location, PictureBox.Size, DRAWING_SIZE, 50);
 			algorithm.CreateRandomPoints();
 			algorithm.CalculateFromPoints();
 
@@ -113,7 +115,7 @@ namespace convex_hull
 		private void buttonClear_Click(object sender, EventArgs e)
 		{
 			clearCanvas();
-			algorithm = new JarvisAlgorithm(PictureBox.Location, PictureBox.Size, DRAWING_SIZE);
+			algorithm = new JarvisAlgorithm(PictureBox.Location, PictureBox.Size, DRAWING_SIZE, 50);
 		}
 
 		/// <summary>
@@ -123,7 +125,36 @@ namespace convex_hull
 		/// <param name="e"></param>
 		private void generate_benchmarks_Click(object sender, EventArgs e)
 		{
-			var summary = BenchmarkRunner.Run<MemoryBenchmarkerDemo>();
+			Random rand = new Random(42);
+			string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+			using (StreamWriter outputFile = new StreamWriter(Path.Combine(docPath, "basic_version.txt"), false))
+			{
+				Stopwatch sw = new Stopwatch();
+				for (int numPoints = 1000; numPoints <= 60_000; numPoints += 1000)
+				{
+					double suma = 0;
+					for (int i = 0; i < 10; i++)
+					{
+						sw.Reset();
+						JarvisAlgorithm benchmarkAlgorithm = new JarvisAlgorithm(PictureBox.Location, PictureBox.Size, DRAWING_SIZE, numPoints);
+						benchmarkAlgorithm.CreateRandomPoints();
+						benchmarkAlgorithm.CalculateFromPoints();
+
+
+						var convexPoints = benchmarkAlgorithm.GetConvexHull;
+						int randomIndex = rand.Next(convexPoints.Count);
+
+						sw.Start();
+						benchmarkAlgorithm.RemoveRecalculate(convexPoints[randomIndex]);
+						sw.Stop();
+						suma += sw.Elapsed.TotalSeconds;
+					}
+
+					outputFile.WriteLine($"{numPoints}	{suma/10}");
+					Console.WriteLine($"{numPoints}	{suma / 10}");
+				}
+			}
+
 		}
 
 		private void buttonRemove_Click(object sender, EventArgs e)

@@ -9,19 +9,22 @@ namespace convex_hull
 {
 	internal class JarvisAlgorithm
 	{
-		Random random = new Random();
+		public Random random;
 		private readonly int minWindowX, minWindowY, maxWindowX, maxWindowY;
 		const int NEGATIVE = -1;
+		int numPoints = 50;
 
 		private List<Point> points = new List<Point>();
 		private List<Point> convexHullPoints = new List<Point>();
 
-		public JarvisAlgorithm(Point location, Size size, int drawingSize)
+		public JarvisAlgorithm(Point location, Size size, int drawingSize, int numPoints)
 		{
 			minWindowX = 0 + drawingSize;
 			minWindowY = 0 + drawingSize;
 			maxWindowX = minWindowX + size.Width - drawingSize;
 			maxWindowY = minWindowY + size.Height - drawingSize;
+			this.numPoints = numPoints;
+			random = new Random(numPoints);
 		}
 
 		enum Orientation
@@ -38,7 +41,7 @@ namespace convex_hull
 
 		public void CreateRandomPoints()
 		{
-			for (int i = 0; i < 50; i++)
+			for (int i = 0; i < numPoints; i++)
 			{
 				int x = random.Next(minWindowX, maxWindowX);
 				int y = random.Next(minWindowY, maxWindowY);
@@ -65,11 +68,6 @@ namespace convex_hull
 				return Orientation.CCW;
 			else
 				return Orientation.CW;
-		}
-
-		private double getDistance(Point point1, Point point2)
-		{
-			return Math.Sqrt(Math.Pow(point1.X - point2.X, 2) + Math.Pow(point1.Y - point2.Y, 2));
 		}
 
 		/// <summary>
